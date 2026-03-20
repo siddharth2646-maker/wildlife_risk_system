@@ -816,7 +816,9 @@ with st.sidebar:
     page = st.radio(
         "Navigation",
         ["🏠 Dashboard", "🔮 Live Risk Predictor", "🗺 Risk Map",
-         "📊 Analytics", "⚡ Future Hotspots", "🧠 Model Insights", "📡 Data Sources"],
+         "📊 Analytics", "⚡ Future Hotspots", "🧠 Model Insights",
+         "🐾 Animal Movement", "🌿 NDVI Prediction", "🚨 Alert System",
+         "🌍 SDG Goals", "📅 Season Prediction", "📡 Data Sources"],
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -913,7 +915,7 @@ st.markdown(f"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PAGE 1 — DASHBOARD
+# PAGE 1 — DASHBOARD (Enhanced UI Overhaul)
 # ═══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Dashboard":
     from utils.helpers import (
@@ -923,49 +925,119 @@ if page == "🏠 Dashboard":
         PALETTE
     )
 
+    # ── Live Status Bar ───────────────────────────────────────────────────────
+    _now = datetime.now()
+    _season_now = ("summer" if _now.month in [3,4,5] else "monsoon" if _now.month in [6,7,8,9]
+                   else "post_monsoon" if _now.month in [10,11] else "winter")
+    _threat = "ELEVATED" if _season_now in ["monsoon","post_monsoon"] else "MODERATE"
+    _threat_color = "#ffb020" if _threat == "ELEVATED" else "#00e676"
+
     st.markdown(f"""
     <div style='margin-bottom:1.5rem;'>
-      <div style='font-family:"IBM Plex Mono",monospace; font-size:0.5rem; color:#3a4a5c; letter-spacing:0.25em; margin-bottom:0.3rem;'>
-        ▸ CLASSIFIED // RISK INTELLIGENCE OVERVIEW // {datetime.now().strftime('%Y-%m-%d %H:%M UTC+5:30')}
+      <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;'>
+        <div>
+          <div style='font-family:"IBM Plex Mono",monospace; font-size:0.5rem; color:#3a4a5c; letter-spacing:0.25em; margin-bottom:0.3rem;'>
+            ▸ CLASSIFIED // RISK INTELLIGENCE OVERVIEW // {_now.strftime('%Y-%m-%d %H:%M UTC+5:30')}
+          </div>
+          <h1 style='font-family:"Inter",sans-serif; font-size:1.8rem; font-weight:600; margin:0 0 0.15rem 0; color:#e8f0fa;'>
+            Wildlife-Vehicle Collision
+            <span style='color:#00e5ff;'>Risk Intelligence</span>
+          </h1>
+          <p style='color:#5a6d82; font-size:0.78rem; margin:0; font-family:"IBM Plex Mono",monospace; letter-spacing:0.03em;'>
+            Dual-model ensemble (XGBoost + Random Forest) · {len(df):,} training records · 7-source real-time pipeline
+          </p>
+        </div>
+        <div style='text-align:right;'>
+          <div style='background:linear-gradient(135deg, {_threat_color}18, {_threat_color}08); border:1px solid {_threat_color}44;
+                      padding:0.5rem 1rem; display:inline-block;'>
+            <div style='font-family:"IBM Plex Mono",monospace; font-size:0.48rem; color:#5a6d82; letter-spacing:0.2em;'>THREAT LEVEL</div>
+            <div style='font-family:"JetBrains Mono",monospace; font-size:1rem; font-weight:700; color:{_threat_color};
+                        letter-spacing:0.12em;'>{_threat}</div>
+            <div style='font-family:"IBM Plex Mono",monospace; font-size:0.45rem; color:#5a6d82;'>
+              Season: {_season_now.replace("_"," ").title()} · {_now.strftime('%H:%M')} IST
+            </div>
+          </div>
+        </div>
       </div>
-      <h1 style='font-family:"Inter",sans-serif; font-size:1.8rem; font-weight:600; margin:0 0 0.15rem 0; color:#e8f0fa;'>
-        Wildlife-Vehicle Collision
-        <span style='color:#00e5ff;'>Risk Intelligence</span>
-      </h1>
-      <p style='color:#5a6d82; font-size:0.78rem; margin:0; font-family:"IBM Plex Mono",monospace; letter-spacing:0.03em;'>
-        Dual-model ensemble (XGBoost + Random Forest) · {len(df):,} training records · 7-source real-time pipeline
-      </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── KPI Row ────────────────────────────────────────────────────────────────
+    # ── KPI Row 1 — Primary Metrics ──────────────────────────────────────────
     acc_rate  = df["accident"].mean()
     high_risk = (df["risk_score"] > 0.65).sum()
+    critical_zones = (df["risk_score"] > 0.80).sum()
     top_sp    = df[df["accident"]==1]["species"].value_counts().idxmax()
     top_road  = df[df["accident"]==1]["road_type"].value_counts().idxmax()
+    avg_risk  = df["risk_score"].mean()
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     kpis = [
-        (c1, "Total Records",    f"{len(df):,}",                     "training dataset"),
-        (c2, "Accident Rate",    f"{acc_rate:.1%}",                  "binary target"),
-        (c3, "High-Risk Zones",  f"{high_risk:,}",                   "score > 0.65"),
-        (c4, "Riskiest Species", top_sp.capitalize(),                 "highest frequency"),
-        (c5, "XGB AUC",          f"{xgb_metrics.get('roc_auc',0):.4f}", "gradient boosting"),
-        (c6, "RF AUC",           f"{rf_metrics.get('roc_auc',0):.4f}",  "random forest"),
+        (c1, "Total Records",    f"{len(df):,}",          "training dataset",    "#00e5ff"),
+        (c2, "Accident Rate",    f"{acc_rate:.1%}",        "binary target",       "#ff3d5a" if acc_rate > 0.5 else "#ffb020"),
+        (c3, "High-Risk Zones",  f"{high_risk:,}",         "score > 0.65",        "#ff3d5a"),
+        (c4, "Critical Zones",   f"{critical_zones:,}",    "score > 0.80",        "#d500f9"),
+        (c5, "XGB AUC",          f"{xgb_metrics.get('roc_auc',0):.4f}", "gradient boosting", "#00e5ff"),
+        (c6, "RF AUC",           f"{rf_metrics.get('roc_auc',0):.4f}",  "random forest",     "#4da6ff"),
     ]
-    for col, title, val, sub in kpis:
+    for col, title, val, sub, color in kpis:
         with col:
             st.markdown(f"""
             <div class='metric-card'>
               <h3>{title}</h3>
-              <div class='value' style='font-size:1.6rem;'>{val}</div>
+              <div class='value' style='font-size:1.6rem; color:{color};'>{val}</div>
+              <div class='sub'>{sub}</div>
+            </div>""", unsafe_allow_html=True)
+
+    # ── KPI Row 2 — Ecological & Risk Indicators ─────────────────────────────
+    c7, c8, c9, c10 = st.columns(4)
+    avg_ndvi = df["ndvi"].mean()
+    avg_movement = df["movement_score"].mean()
+    breeding_pct = df["breeding_season"].mean()
+    night_acc_rate = df[df["night_flag"]==1]["accident"].mean()
+
+    kpis2 = [
+        (c7,  "Avg NDVI",         f"{avg_ndvi:.3f}",     "vegetation density",   "#00e676"),
+        (c8,  "Movement Score",   f"{avg_movement:.3f}", "animal activity",      "#ffb020"),
+        (c9,  "Breeding Period",  f"{breeding_pct:.0%}", "monsoon + post-monsoon","#d500f9"),
+        (c10, "Night Risk Rate",  f"{night_acc_rate:.1%}","20:00-06:00 window",  "#ff3d5a"),
+    ]
+    for col, title, val, sub, color in kpis2:
+        with col:
+            st.markdown(f"""
+            <div class='metric-card'>
+              <h3>{title}</h3>
+              <div class='value' style='font-size:1.4rem; color:{color};'>{val}</div>
               <div class='sub'>{sub}</div>
             </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ── Risk Distribution Overview ────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Risk Distribution Overview</div>", unsafe_allow_html=True)
+    risk_cols = st.columns(4)
+    risk_bins = [(0, 0.25, "Low", "#00e676"), (0.25, 0.50, "Moderate", "#ffb020"),
+                 (0.50, 0.75, "High", "#ff3d5a"), (0.75, 1.01, "Critical", "#d500f9")]
+    for i, (lo, hi, label, color) in enumerate(risk_bins):
+        count = ((df["risk_score"] >= lo) & (df["risk_score"] < hi)).sum()
+        pct = count / len(df)
+        with risk_cols[i]:
+            st.markdown(f"""
+            <div style='background:linear-gradient(145deg, {color}15, {color}05); border:1px solid {color}33;
+                        padding:0.7rem 0.9rem; text-align:center;'>
+              <div style='font-family:"IBM Plex Mono",monospace; font-size:0.5rem; color:{color};
+                          letter-spacing:0.15em; text-transform:uppercase;'>{label} Risk</div>
+              <div style='font-family:"JetBrains Mono",monospace; font-size:1.5rem; font-weight:700;
+                          color:{color}; margin:0.2rem 0;'>{count:,}</div>
+              <div style='font-family:"IBM Plex Mono",monospace; font-size:0.6rem; color:#5a6d82;'>{pct:.1%} of records</div>
+              <div style='background:#1a2332; height:4px; margin-top:0.4rem; overflow:hidden;'>
+                <div style='background:{color}; height:100%; width:{pct*100:.0f}%;'></div>
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # ── Model comparison row ──────────────────────────────────────────────────
-    st.markdown("<div class='section-header'>📈 Model Performance Comparison — XGBoost vs Random Forest</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>Model Performance Comparison — XGBoost vs Random Forest</div>", unsafe_allow_html=True)
     col_mc, col_roc = st.columns(2)
     with col_mc:
         if rf_metrics:
@@ -987,6 +1059,38 @@ if page == "🏠 Dashboard":
         st.plotly_chart(season_road_heatmap(df), use_container_width=True)
     with col_d:
         st.plotly_chart(ndvi_risk_scatter(df), use_container_width=True)
+
+    # ── Species Corridor Analysis ─────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Species-Corridor Risk Matrix</div>", unsafe_allow_html=True)
+    sp_corr = df.groupby("species").agg(
+        avg_risk=("risk_score","mean"), avg_movement=("movement_score","mean"),
+        avg_corridor=("corridor_dist_km","mean"), total_acc=("accident","sum"),
+        count=("accident","count")
+    ).reset_index().sort_values("avg_risk", ascending=False)
+
+    fig_sp_matrix = go.Figure()
+    sp_colors = {"tiger":"#ff3d5a","elephant":"#d500f9","leopard":"#ff7043","deer":"#ffb020",
+                 "boar":"#9d7aff","wolf":"#4da6ff","nilgai":"#00e676","sambar":"#00e5ff"}
+    for _, row in sp_corr.iterrows():
+        fig_sp_matrix.add_trace(go.Scatter(
+            x=[row["avg_corridor"]], y=[row["avg_risk"]],
+            mode="markers+text",
+            marker=dict(size=max(10, row["total_acc"]/5), color=sp_colors.get(row["species"],"#00e5ff"),
+                       opacity=0.8, line=dict(width=1, color="#1a2332")),
+            text=[row["species"].capitalize()], textposition="top center",
+            textfont=dict(size=9, color=sp_colors.get(row["species"],"#00e5ff")),
+            name=row["species"].capitalize(),
+            hovertemplate=f"<b>{row['species'].capitalize()}</b><br>Risk: {row['avg_risk']:.3f}<br>"
+                         f"Corridor Dist: {row['avg_corridor']:.1f}km<br>Accidents: {row['total_acc']}<extra></extra>",
+        ))
+    fig_sp_matrix.update_layout(
+        paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+        font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+        xaxis=dict(title="Avg Corridor Distance (km)", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+        yaxis=dict(title="Avg Risk Score", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+        height=380, showlegend=False, margin=dict(l=40,r=20,t=30,b=40),
+    )
+    st.plotly_chart(fig_sp_matrix, use_container_width=True)
 
     # ── Rolling trend ─────────────────────────────────────────────────────────
     st.plotly_chart(rolling_trend_chart(df), use_container_width=True)
@@ -2154,7 +2258,1282 @@ elif page == "🧠 Model Insights":
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PAGE 6 — DATA SOURCES
+# PAGE 6 — ANIMAL MOVEMENT DATA INJECTION PIPELINE
+# ═══════════════════════════════════════════════════════════════════════════════
+elif page == "🐾 Animal Movement":
+    from utils.helpers import PALETTE, PLOTLY_LAYOUT
+    from data.realtime_extractor import PROTECTED_AREAS, WILDLIFE_CORRIDORS
+
+    st.markdown("""
+    <h1 style='font-family:"Space Mono",monospace; font-size:1.8rem; margin:0 0 0.3rem 0;'>
+      🐾 Animal Movement <span style='color:#00e5ff;'>Data Pipeline</span>
+    </h1>
+    <p style='color:#8B949E; font-size:0.82rem; margin:0 0 1.5rem 0;'>
+      Live injection of wildlife movement patterns from GBIF, tracking databases, and corridor telemetry
+    </p>
+    """, unsafe_allow_html=True)
+
+    # ── Pipeline Status Panel ─────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Pipeline Sources & Status</div>", unsafe_allow_html=True)
+
+    movement_sources = [
+        {"name": "GBIF Occurrence API", "status": "Active", "records": "300+/query",
+         "desc": "Mammal occurrence records within 50km radius from Global Biodiversity Information Facility",
+         "color": "#00e5ff", "endpoint": "api.gbif.org/v1/occurrence/search"},
+        {"name": "Movebank Telemetry", "status": "Configured", "records": "GPS tracks",
+         "desc": "Satellite collar and GPS telemetry data for tracked wildlife across Indian corridors",
+         "color": "#00e676", "endpoint": "movebank.org/movebank/service"},
+        {"name": "Wildlife Institute of India", "status": "Configured", "records": "Survey data",
+         "desc": "Camera trap and transect survey records from WII research stations",
+         "color": "#ffb020", "endpoint": "wii.gov.in"},
+        {"name": "India Biodiversity Portal", "status": "Configured", "records": "Citizen science",
+         "desc": "Community-sourced wildlife observations with geolocation and timestamp data",
+         "color": "#d500f9", "endpoint": "indiabiodiversity.org/api/observation"},
+    ]
+
+    src_cols = st.columns(2)
+    for i, src in enumerate(movement_sources):
+        with src_cols[i % 2]:
+            badge = "🟢" if src["status"] == "Active" else "🟡"
+            st.markdown(f"""
+            <div class='metric-card' style='border-left:3px solid {src["color"]};'>
+              <div style='display:flex; justify-content:space-between; align-items:center;'>
+                <h3 style='color:{src["color"]};'>{src["name"]}</h3>
+                <span style='font-size:0.65rem; color:{src["color"]}; background:{src["color"]}15;
+                      padding:0.15rem 0.5rem; border:1px solid {src["color"]}33;'>{badge} {src["status"]}</span>
+              </div>
+              <div class='sub' style='margin:0.3rem 0;'>{src["desc"]}</div>
+              <code style='font-size:0.6rem; color:#5a6d82;'>{src["endpoint"]}</code>
+              <div style='margin-top:0.3rem;'>
+                <span style='font-size:0.6rem; color:{src["color"]};'>Records: {src["records"]}</span>
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Live Movement Query ───────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Query Animal Movement Data</div>", unsafe_allow_html=True)
+    mv_col1, mv_col2, mv_col3 = st.columns(3)
+    with mv_col1:
+        mv_lat = st.number_input("Latitude", value=11.65, min_value=8.0, max_value=25.0,
+                                  step=0.1, key="mv_lat")
+    with mv_col2:
+        mv_lon = st.number_input("Longitude", value=76.65, min_value=73.0, max_value=85.0,
+                                  step=0.1, key="mv_lon")
+    with mv_col3:
+        mv_radius = st.selectbox("Search Radius", ["25 km", "50 km", "100 km"], index=1, key="mv_radius")
+
+    if st.button("Fetch Movement Data", type="primary", key="mv_fetch"):
+        from data.realtime_extractor import RealtimeDataExtractor
+
+        with st.spinner("Querying GBIF and computing movement patterns..."):
+            extractor = RealtimeDataExtractor()
+            wildlife_data = extractor.fetch_wildlife_data(mv_lat, mv_lon)
+            spatial_data = extractor.compute_spatial_features(mv_lat, mv_lon)
+
+        species_counts = wildlife_data.get("species_counts", {})
+        total_sightings = wildlife_data.get("total_sightings", 0)
+
+        # Results panel
+        res_c1, res_c2, res_c3, res_c4 = st.columns(4)
+        with res_c1:
+            st.markdown(f"""<div class='metric-card'>
+              <h3>Total Sightings</h3>
+              <div class='value' style='font-size:1.5rem; color:#00e5ff;'>{total_sightings}</div>
+              <div class='sub'>GBIF records in area</div>
+            </div>""", unsafe_allow_html=True)
+        with res_c2:
+            st.markdown(f"""<div class='metric-card'>
+              <h3>Dominant Species</h3>
+              <div class='value' style='font-size:1.3rem; color:#ffb020;'>{wildlife_data.get('species','—').capitalize()}</div>
+              <div class='sub'>highest occurrence</div>
+            </div>""", unsafe_allow_html=True)
+        with res_c3:
+            st.markdown(f"""<div class='metric-card'>
+              <h3>Nearest PA</h3>
+              <div class='value' style='font-size:1.1rem; color:#00e676;'>{spatial_data.get('nearest_pa','—')}</div>
+              <div class='sub'>{spatial_data.get('protected_dist_km',0):.1f} km away</div>
+            </div>""", unsafe_allow_html=True)
+        with res_c4:
+            st.markdown(f"""<div class='metric-card'>
+              <h3>Nearest Corridor</h3>
+              <div class='value' style='font-size:1.0rem; color:#d500f9;'>{spatial_data.get('nearest_corridor','—')}</div>
+              <div class='sub'>{spatial_data.get('corridor_dist_km',0):.1f} km away</div>
+            </div>""", unsafe_allow_html=True)
+
+        # Species breakdown chart
+        if species_counts:
+            sp_names = [s.capitalize() for s in species_counts.keys()]
+            sp_vals = list(species_counts.values())
+            sp_clrs = [{"tiger":"#ff3d5a","elephant":"#d500f9","leopard":"#ff7043","deer":"#ffb020",
+                        "boar":"#9d7aff","wolf":"#4da6ff","nilgai":"#00e676","sambar":"#00e5ff"
+                       }.get(s, "#00e5ff") for s in species_counts.keys()]
+            fig_sp = go.Figure(go.Bar(x=sp_names, y=sp_vals, marker_color=sp_clrs,
+                                       text=sp_vals, textposition="outside"))
+            fig_sp.update_layout(
+                paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+                font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+                title="Species Occurrence Count (GBIF)", height=350,
+                xaxis=dict(gridcolor="#1a2332", zerolinecolor="#1a2332"),
+                yaxis=dict(title="Occurrences", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+                margin=dict(l=40,r=20,t=40,b=30),
+            )
+            st.plotly_chart(fig_sp, use_container_width=True)
+
+        # Movement corridors map
+        st.markdown("<div class='section-header'>Wildlife Corridor Network</div>", unsafe_allow_html=True)
+        import folium
+        from folium.plugins import HeatMap
+        from streamlit_folium import st_folium
+
+        m = folium.Map(location=[mv_lat, mv_lon], zoom_start=8,
+                       tiles="CartoDB dark_matter", control_scale=True)
+        folium.CircleMarker([mv_lat, mv_lon], radius=8, color="#00e5ff",
+                            fill=True, fill_opacity=0.8,
+                            popup="Query Location").add_to(m)
+        for pa in PROTECTED_AREAS:
+            dist = ((pa["lat"]-mv_lat)**2 + (pa["lon"]-mv_lon)**2)**0.5
+            if dist < 3:
+                folium.CircleMarker([pa["lat"], pa["lon"]], radius=6, color="#00e676",
+                                    fill=True, fill_opacity=0.6,
+                                    popup=f'{pa["name"]} ({pa.get("state","")})').add_to(m)
+        for cor in WILDLIFE_CORRIDORS:
+            dist = ((cor["lat"]-mv_lat)**2 + (cor["lon"]-mv_lon)**2)**0.5
+            if dist < 3:
+                folium.CircleMarker([cor["lat"], cor["lon"]], radius=5, color="#d500f9",
+                                    fill=True, fill_opacity=0.6,
+                                    popup=cor["name"]).add_to(m)
+        # Simulated movement heatmap around corridors
+        heat_pts = []
+        for cor in WILDLIFE_CORRIDORS:
+            dist = ((cor["lat"]-mv_lat)**2 + (cor["lon"]-mv_lon)**2)**0.5
+            if dist < 3:
+                for _ in range(15):
+                    heat_pts.append([cor["lat"]+np.random.normal(0,0.08),
+                                     cor["lon"]+np.random.normal(0,0.08),
+                                     np.random.uniform(0.3, 1.0)])
+        if heat_pts:
+            HeatMap(heat_pts, radius=18, blur=12, gradient={0.3:"blue",0.5:"cyan",0.7:"lime",1.0:"red"}).add_to(m)
+        st_folium(m, width=None, height=500, returned_objects=[])
+
+    # ── Dataset Movement Patterns ─────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Training Data — Movement Score Analysis</div>", unsafe_allow_html=True)
+
+    # Movement score distribution by species
+    fig_mv_dist = go.Figure()
+    for sp in df["species"].unique():
+        sp_data = df[df["species"]==sp]["movement_score"]
+        fig_mv_dist.add_trace(go.Violin(
+            y=sp_data, name=sp.capitalize(), box_visible=True,
+            meanline_visible=True, opacity=0.7,
+            marker=dict(color={"tiger":"#ff3d5a","elephant":"#d500f9","leopard":"#ff7043",
+                               "deer":"#ffb020","boar":"#9d7aff","wolf":"#4da6ff",
+                               "nilgai":"#00e676","sambar":"#00e5ff"}.get(sp,"#00e5ff")),
+        ))
+    fig_mv_dist.update_layout(
+        paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+        font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+        title="Movement Score Distribution by Species",
+        yaxis=dict(title="Movement Score", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+        xaxis=dict(gridcolor="#1a2332", zerolinecolor="#1a2332"),
+        height=420, margin=dict(l=40,r=20,t=40,b=30), showlegend=False,
+    )
+    st.plotly_chart(fig_mv_dist, use_container_width=True)
+
+    # Movement vs corridor distance
+    mv_scatter_cols = st.columns(2)
+    with mv_scatter_cols[0]:
+        sample_mv = df.sample(min(2000, len(df)), random_state=42)
+        fig_mv_corr = px.scatter(sample_mv, x="corridor_dist_km", y="movement_score",
+                                  color="accident", color_discrete_map={0:"#00e5ff", 1:"#ff3d5a"},
+                                  opacity=0.5, size_max=8,
+                                  labels={"corridor_dist_km":"Corridor Distance (km)",
+                                          "movement_score":"Movement Score"})
+        fig_mv_corr.update_layout(
+            paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+            font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+            title="Movement Score vs Corridor Distance", height=380,
+            xaxis=dict(gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            yaxis=dict(gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            margin=dict(l=40,r=20,t=40,b=30),
+        )
+        st.plotly_chart(fig_mv_corr, use_container_width=True)
+
+    with mv_scatter_cols[1]:
+        fig_mv_time = df.groupby("hour")["movement_score"].mean().reset_index()
+        fig_time = go.Figure(go.Scatter(
+            x=fig_mv_time["hour"], y=fig_mv_time["movement_score"],
+            mode="lines+markers", fill="tozeroy",
+            line=dict(color="#00e5ff", width=2),
+            marker=dict(size=6, color="#00e5ff"),
+            fillcolor="rgba(0,229,255,0.1)",
+        ))
+        fig_time.update_layout(
+            paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+            font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+            title="Average Movement Score by Hour", height=380,
+            xaxis=dict(title="Hour of Day", gridcolor="#1a2332", zerolinecolor="#1a2332",
+                       dtick=2),
+            yaxis=dict(title="Avg Movement Score", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            margin=dict(l=40,r=20,t=40,b=30),
+        )
+        st.plotly_chart(fig_time, use_container_width=True)
+
+    # ── Injection Pipeline Architecture ───────────────────────────────────────
+    st.markdown("<div class='section-header'>Pipeline Architecture</div>", unsafe_allow_html=True)
+    st.markdown("""
+    ```
+    ┌─────────────────────────────────────────────────────────┐
+    │          ANIMAL MOVEMENT DATA INJECTION PIPELINE        │
+    ├─────────────────────────────────────────────────────────┤
+    │                                                         │
+    │   ┌─── External Sources ──────────────────────────┐    │
+    │   │  GBIF API ──→ Species occurrences (mammal)    │    │
+    │   │  Movebank  ──→ GPS collar telemetry tracks    │    │
+    │   │  WII       ──→ Camera trap / transect data    │    │
+    │   │  IBP       ──→ Citizen science observations   │    │
+    │   └───────────────────────────────────────────────┘    │
+    │                     │                                   │
+    │   ┌─── Processing ────────────────────────────────┐    │
+    │   │  1. Geocode + radius filter (Haversine)       │    │
+    │   │  2. Species matching → risk scoring            │    │
+    │   │  3. Temporal aggregation (hour / season)       │    │
+    │   │  4. KDE density estimation for hotspots        │    │
+    │   │  5. Movement score derivation                  │    │
+    │   └───────────────────────────────────────────────┘    │
+    │                     │                                   │
+    │   ┌─── Outputs ──────────────────────────────────┐     │
+    │   │  → movement_score (feature)                   │    │
+    │   │  → kde_density (feature)                      │    │
+    │   │  → species_risk (feature)                     │    │
+    │   │  → corridor proximity alerts                  │    │
+    │   └───────────────────────────────────────────────┘    │
+    └─────────────────────────────────────────────────────────┘
+    ```
+    """)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE 7 — NDVI PREDICTION INDEX
+# ═══════════════════════════════════════════════════════════════════════════════
+elif page == "🌿 NDVI Prediction":
+    from utils.helpers import PALETTE, PLOTLY_LAYOUT
+
+    st.markdown("""
+    <h1 style='font-family:"Space Mono",monospace; font-size:1.8rem; margin:0 0 0.3rem 0;'>
+      🌿 NDVI <span style='color:#00e676;'>Prediction Index</span>
+    </h1>
+    <p style='color:#8B949E; font-size:0.82rem; margin:0 0 1.5rem 0;'>
+      Normalized Difference Vegetation Index — forecasting habitat density and its correlation with collision risk
+    </p>
+    """, unsafe_allow_html=True)
+
+    # ── NDVI Overview Metrics ─────────────────────────────────────────────────
+    avg_ndvi_all = df["ndvi"].mean()
+    ndvi_acc = df[df["accident"]==1]["ndvi"].mean()
+    ndvi_safe = df[df["accident"]==0]["ndvi"].mean()
+    ndvi_corr = df[["ndvi","risk_score"]].corr().iloc[0,1]
+
+    nc1, nc2, nc3, nc4 = st.columns(4)
+    ndvi_kpis = [
+        (nc1, "Mean NDVI", f"{avg_ndvi_all:.4f}", "all records", "#00e676"),
+        (nc2, "Accident NDVI", f"{ndvi_acc:.4f}", "where accident=1", "#ff3d5a"),
+        (nc3, "Safe Zone NDVI", f"{ndvi_safe:.4f}", "where accident=0", "#00e5ff"),
+        (nc4, "Risk Correlation", f"{ndvi_corr:.4f}", "Pearson r", "#ffb020"),
+    ]
+    for col, title, val, sub, color in ndvi_kpis:
+        with col:
+            st.markdown(f"""<div class='metric-card'>
+              <h3>{title}</h3>
+              <div class='value' style='font-size:1.5rem; color:{color};'>{val}</div>
+              <div class='sub'>{sub}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── NDVI Seasonal Forecast Model ──────────────────────────────────────────
+    st.markdown("<div class='section-header'>Seasonal NDVI Forecast Model</div>", unsafe_allow_html=True)
+
+    seasons = ["summer", "monsoon", "post_monsoon", "winter"]
+    season_labels = ["Summer\n(Mar-May)", "Monsoon\n(Jun-Sep)", "Post-Monsoon\n(Oct-Nov)", "Winter\n(Dec-Feb)"]
+    season_modifiers = {"summer": -0.10, "monsoon": 0.12, "post_monsoon": 0.05, "winter": -0.05}
+
+    # Compute NDVI stats per season from training data
+    ndvi_by_season = df.groupby("season").agg(
+        mean_ndvi=("ndvi","mean"), std_ndvi=("ndvi","std"),
+        accident_rate=("accident","mean"), mean_risk=("risk_score","mean"),
+        count=("accident","count")
+    ).reindex(seasons)
+
+    # Forecast chart with confidence bands
+    fig_ndvi_forecast = go.Figure()
+    x_months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    month_to_season = {1:"winter",2:"winter",3:"summer",4:"summer",5:"summer",
+                       6:"monsoon",7:"monsoon",8:"monsoon",9:"monsoon",
+                       10:"post_monsoon",11:"post_monsoon",12:"winter"}
+    forecast_ndvi = []
+    forecast_upper = []
+    forecast_lower = []
+    base_ndvi = avg_ndvi_all
+    for m in range(1,13):
+        s = month_to_season[m]
+        mod = season_modifiers[s]
+        mean_val = base_ndvi + mod
+        std_val = ndvi_by_season.loc[s, "std_ndvi"] if s in ndvi_by_season.index else 0.08
+        forecast_ndvi.append(round(mean_val, 4))
+        forecast_upper.append(round(mean_val + 1.96*std_val, 4))
+        forecast_lower.append(round(mean_val - 1.96*std_val, 4))
+
+    fig_ndvi_forecast.add_trace(go.Scatter(
+        x=x_months, y=forecast_upper, mode="lines", line=dict(width=0),
+        showlegend=False, name="Upper CI",
+    ))
+    fig_ndvi_forecast.add_trace(go.Scatter(
+        x=x_months, y=forecast_lower, mode="lines", line=dict(width=0),
+        fill="tonexty", fillcolor="rgba(0,230,118,0.12)",
+        showlegend=False, name="Lower CI",
+    ))
+    fig_ndvi_forecast.add_trace(go.Scatter(
+        x=x_months, y=forecast_ndvi, mode="lines+markers",
+        line=dict(color="#00e676", width=3),
+        marker=dict(size=8, color="#00e676", line=dict(width=1, color="#0d1320")),
+        name="NDVI Forecast",
+    ))
+    # Add risk overlay
+    risk_by_month = []
+    for m in range(1,13):
+        s = month_to_season[m]
+        risk_by_month.append(ndvi_by_season.loc[s,"accident_rate"] if s in ndvi_by_season.index else 0.3)
+    fig_ndvi_forecast.add_trace(go.Scatter(
+        x=x_months, y=risk_by_month, mode="lines+markers",
+        line=dict(color="#ff3d5a", width=2, dash="dot"),
+        marker=dict(size=6, color="#ff3d5a"),
+        name="Accident Rate", yaxis="y2",
+    ))
+    fig_ndvi_forecast.update_layout(
+        paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+        font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+        title="Monthly NDVI Forecast with 95% Confidence Interval",
+        xaxis=dict(title="Month", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+        yaxis=dict(title="NDVI Index", gridcolor="#1a2332", zerolinecolor="#1a2332",
+                   range=[0, 1]),
+        yaxis2=dict(title="Accident Rate", overlaying="y", side="right",
+                    gridcolor="#1a233200", range=[0, 1],
+                    tickfont=dict(color="#ff3d5a"), titlefont=dict(color="#ff3d5a")),
+        height=420, margin=dict(l=40,r=50,t=40,b=30),
+        legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center",
+                    font=dict(size=10)),
+    )
+    st.plotly_chart(fig_ndvi_forecast, use_container_width=True)
+
+    # ── Season Comparison Cards ───────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Season-wise NDVI Breakdown</div>", unsafe_allow_html=True)
+    season_cols = st.columns(4)
+    season_icons = {"summer":"☀️", "monsoon":"🌧️", "post_monsoon":"🍂", "winter":"❄️"}
+    season_colors = {"summer":"#ffb020", "monsoon":"#00e676", "post_monsoon":"#ff7043", "winter":"#4da6ff"}
+    for i, s in enumerate(seasons):
+        with season_cols[i]:
+            if s in ndvi_by_season.index:
+                row = ndvi_by_season.loc[s]
+                st.markdown(f"""
+                <div class='metric-card' style='border-top:3px solid {season_colors[s]};'>
+                  <div style='font-size:1.5rem; text-align:center;'>{season_icons[s]}</div>
+                  <h3 style='text-align:center; color:{season_colors[s]};'>{s.replace('_',' ').title()}</h3>
+                  <div style='text-align:center;'>
+                    <div class='value' style='font-size:1.3rem; color:{season_colors[s]};'>{row["mean_ndvi"]:.4f}</div>
+                    <div class='sub'>Mean NDVI</div>
+                    <div style='margin-top:0.4rem; font-size:0.7rem; color:#5a6d82;'>
+                      Accident Rate: <span style='color:#ff3d5a;'>{row["accident_rate"]:.1%}</span><br>
+                      Modifier: <span style='color:{season_colors[s]};'>{season_modifiers[s]:+.2f}</span><br>
+                      Records: {row["count"]:,.0f}
+                    </div>
+                  </div>
+                </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── NDVI Risk Correlation Deep Dive ───────────────────────────────────────
+    ndvi_analysis_cols = st.columns(2)
+    with ndvi_analysis_cols[0]:
+        # NDVI distribution by accident flag
+        fig_ndvi_dist = go.Figure()
+        fig_ndvi_dist.add_trace(go.Histogram(
+            x=df[df["accident"]==0]["ndvi"], nbinsx=40, name="No Accident",
+            marker_color="#00e5ff", opacity=0.6,
+        ))
+        fig_ndvi_dist.add_trace(go.Histogram(
+            x=df[df["accident"]==1]["ndvi"], nbinsx=40, name="Accident",
+            marker_color="#ff3d5a", opacity=0.6,
+        ))
+        fig_ndvi_dist.update_layout(
+            paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+            font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+            title="NDVI Distribution: Accident vs Safe",
+            barmode="overlay", height=380,
+            xaxis=dict(title="NDVI", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            yaxis=dict(title="Count", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            margin=dict(l=40,r=20,t=40,b=30),
+            legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"),
+        )
+        st.plotly_chart(fig_ndvi_dist, use_container_width=True)
+
+    with ndvi_analysis_cols[1]:
+        # NDVI vs Protected Area distance
+        sample_ndvi = df.sample(min(2000, len(df)), random_state=42)
+        fig_ndvi_pa = px.scatter(sample_ndvi, x="protected_dist_km", y="ndvi",
+                                  color="season", opacity=0.5,
+                                  color_discrete_map=season_colors,
+                                  labels={"protected_dist_km":"Distance to Protected Area (km)",
+                                          "ndvi":"NDVI"})
+        fig_ndvi_pa.update_layout(
+            paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+            font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+            title="NDVI vs Protected Area Proximity", height=380,
+            xaxis=dict(gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            yaxis=dict(gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            margin=dict(l=40,r=20,t=40,b=30),
+            legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"),
+        )
+        st.plotly_chart(fig_ndvi_pa, use_container_width=True)
+
+    # ── NDVI Prediction Lookup ────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>NDVI Prediction Lookup</div>", unsafe_allow_html=True)
+    lk_c1, lk_c2, lk_c3 = st.columns(3)
+    with lk_c1:
+        lk_lat = st.number_input("Latitude", value=12.2, min_value=8.0, max_value=25.0,
+                                  step=0.1, key="ndvi_lat")
+    with lk_c2:
+        lk_lon = st.number_input("Longitude", value=76.6, min_value=73.0, max_value=85.0,
+                                  step=0.1, key="ndvi_lon")
+    with lk_c3:
+        lk_season = st.selectbox("Season", seasons, index=1, key="ndvi_season",
+                                  format_func=lambda x: x.replace("_"," ").title())
+
+    if st.button("Predict NDVI", type="primary", key="ndvi_predict"):
+        from data.realtime_extractor import RealtimeDataExtractor
+        ext = RealtimeDataExtractor()
+        spatial = ext.compute_spatial_features(lk_lat, lk_lon, lk_season)
+        predicted_ndvi = spatial.get("ndvi", 0.5)
+        pa_name = spatial.get("nearest_pa", "Unknown")
+        pa_dist = spatial.get("protected_dist_km", 0)
+
+        # NDVI gauge
+        ndvi_color = "#ff3d5a" if predicted_ndvi < 0.3 else "#ffb020" if predicted_ndvi < 0.5 else "#00e676"
+        risk_indicator = "HIGH RISK" if predicted_ndvi < 0.3 else "MODERATE" if predicted_ndvi < 0.5 else "LOW RISK"
+
+        pred_c1, pred_c2 = st.columns([1, 1.5])
+        with pred_c1:
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=predicted_ndvi,
+                number=dict(font=dict(size=40, color=ndvi_color)),
+                gauge=dict(
+                    axis=dict(range=[0, 1], tickcolor="#5a6d82"),
+                    bar=dict(color=ndvi_color),
+                    bgcolor="#0d1320",
+                    borderwidth=0,
+                    steps=[
+                        dict(range=[0, 0.3], color="#ff3d5a22"),
+                        dict(range=[0.3, 0.5], color="#ffb02022"),
+                        dict(range=[0.5, 1], color="#00e67622"),
+                    ],
+                ),
+                title=dict(text="Predicted NDVI", font=dict(size=14, color="#c8d6e5")),
+            ))
+            fig_gauge.update_layout(
+                paper_bgcolor="#060a10", height=280,
+                margin=dict(l=20,r=20,t=50,b=20),
+            )
+            st.plotly_chart(fig_gauge, use_container_width=True)
+
+        with pred_c2:
+            st.markdown(f"""
+            <div class='metric-card' style='padding:1.2rem;'>
+              <h3 style='color:#00e5ff; font-size:1rem;'>Prediction Results</h3>
+              <div style='margin-top:0.5rem;'>
+                <div style='display:flex; justify-content:space-between; margin:0.4rem 0; padding:0.3rem 0;
+                            border-bottom:1px solid #1a2332;'>
+                  <span style='color:#5a6d82; font-size:0.75rem;'>Predicted NDVI</span>
+                  <span style='color:{ndvi_color}; font-size:0.9rem; font-weight:600;'>{predicted_ndvi:.4f}</span>
+                </div>
+                <div style='display:flex; justify-content:space-between; margin:0.4rem 0; padding:0.3rem 0;
+                            border-bottom:1px solid #1a2332;'>
+                  <span style='color:#5a6d82; font-size:0.75rem;'>Habitat Status</span>
+                  <span style='color:{ndvi_color}; font-size:0.8rem;'>{risk_indicator}</span>
+                </div>
+                <div style='display:flex; justify-content:space-between; margin:0.4rem 0; padding:0.3rem 0;
+                            border-bottom:1px solid #1a2332;'>
+                  <span style='color:#5a6d82; font-size:0.75rem;'>Nearest Protected Area</span>
+                  <span style='color:#00e676; font-size:0.8rem;'>{pa_name}</span>
+                </div>
+                <div style='display:flex; justify-content:space-between; margin:0.4rem 0; padding:0.3rem 0;
+                            border-bottom:1px solid #1a2332;'>
+                  <span style='color:#5a6d82; font-size:0.75rem;'>PA Distance</span>
+                  <span style='color:#4da6ff; font-size:0.8rem;'>{pa_dist:.2f} km</span>
+                </div>
+                <div style='display:flex; justify-content:space-between; margin:0.4rem 0; padding:0.3rem 0;'>
+                  <span style='color:#5a6d82; font-size:0.75rem;'>Season</span>
+                  <span style='color:#ffb020; font-size:0.8rem;'>{lk_season.replace('_',' ').title()}</span>
+                </div>
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE 8 — ALERT SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+elif page == "🚨 Alert System":
+    from utils.helpers import PALETTE, PLOTLY_LAYOUT
+
+    st.markdown("""
+    <h1 style='font-family:"Space Mono",monospace; font-size:1.8rem; margin:0 0 0.3rem 0;'>
+      🚨 Wildlife Collision <span style='color:#ff3d5a;'>Alert System</span>
+    </h1>
+    <p style='color:#8B949E; font-size:0.82rem; margin:0 0 1.5rem 0;'>
+      Real-time risk alerts, notification thresholds, and early warning dispatch for wildlife corridors
+    </p>
+    """, unsafe_allow_html=True)
+
+    # ── Current Alert Status ──────────────────────────────────────────────────
+    _now_alert = datetime.now()
+    _hr = _now_alert.hour
+    _is_night = _hr < 6 or _hr >= 20
+    _is_dawn_dusk = (5 <= _hr <= 7) or (17 <= _hr <= 19)
+    _m = _now_alert.month
+    _season_alert = ("summer" if _m in [3,4,5] else "monsoon" if _m in [6,7,8,9]
+                     else "post_monsoon" if _m in [10,11] else "winter")
+    _breeding = _season_alert in ["monsoon","post_monsoon"]
+
+    # Compute alert level
+    _alert_score = 0
+    if _is_night: _alert_score += 30
+    if _is_dawn_dusk: _alert_score += 25
+    if _breeding: _alert_score += 20
+    if _season_alert == "monsoon": _alert_score += 15
+    if _hr in [5,6,18,19]: _alert_score += 10
+
+    if _alert_score >= 50:
+        _alert_level, _alert_color, _alert_icon = "CRITICAL", "#ff3d5a", "🔴"
+    elif _alert_score >= 35:
+        _alert_level, _alert_color, _alert_icon = "HIGH", "#ff7043", "🟠"
+    elif _alert_score >= 20:
+        _alert_level, _alert_color, _alert_icon = "ELEVATED", "#ffb020", "🟡"
+    else:
+        _alert_level, _alert_color, _alert_icon = "NORMAL", "#00e676", "🟢"
+
+    # Alert banner
+    st.markdown(f"""
+    <div style='background:linear-gradient(135deg, {_alert_color}12, {_alert_color}05);
+                border:1px solid {_alert_color}44; padding:1rem 1.5rem; margin-bottom:1.5rem;'>
+      <div style='display:flex; justify-content:space-between; align-items:center;'>
+        <div>
+          <div style='font-family:"IBM Plex Mono",monospace; font-size:0.48rem; color:#5a6d82;
+                      letter-spacing:0.2em;'>CURRENT SYSTEM ALERT LEVEL</div>
+          <div style='font-family:"JetBrains Mono",monospace; font-size:1.8rem; font-weight:700;
+                      color:{_alert_color}; letter-spacing:0.1em; margin:0.2rem 0;'>
+            {_alert_icon} {_alert_level}
+          </div>
+          <div style='font-family:"IBM Plex Mono",monospace; font-size:0.55rem; color:#5a6d82;'>
+            Score: {_alert_score}/100 · {_now_alert.strftime('%Y-%m-%d %H:%M IST')} ·
+            {'Night Window' if _is_night else 'Dawn/Dusk' if _is_dawn_dusk else 'Daylight'} ·
+            {_season_alert.replace('_',' ').title()}
+            {'· Breeding Season' if _breeding else ''}
+          </div>
+        </div>
+        <div style='text-align:right;'>
+          <div style='font-size:2.5rem; filter:drop-shadow(0 0 8px {_alert_color});'>{_alert_icon}</div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Alert Factor Breakdown ────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Alert Factor Analysis</div>", unsafe_allow_html=True)
+    factors = [
+        ("Night Window (20:00-06:00)", _is_night, 30, "#ff3d5a"),
+        ("Dawn/Dusk Peak (05-07, 17-19)", _is_dawn_dusk, 25, "#ff7043"),
+        ("Breeding Season Active", _breeding, 20, "#d500f9"),
+        ("Monsoon Period", _season_alert == "monsoon", 15, "#00e5ff"),
+        ("Peak Crossing Hours", _hr in [5,6,18,19], 10, "#ffb020"),
+    ]
+    for label, active, weight, color in factors:
+        status_text = "ACTIVE" if active else "INACTIVE"
+        bar_width = weight if active else 0
+        st.markdown(f"""
+        <div style='display:flex; align-items:center; margin:0.4rem 0; padding:0.4rem 0.6rem;
+                    background:#0d132044; border-left:3px solid {color if active else "#1a2332"};'>
+          <div style='flex:1;'>
+            <span style='font-size:0.75rem; color:{"#e8f0fa" if active else "#5a6d82"};'>{label}</span>
+          </div>
+          <div style='width:120px; margin:0 1rem;'>
+            <div style='background:#1a2332; height:6px; overflow:hidden;'>
+              <div style='background:{color}; height:100%; width:{bar_width*2}%;
+                          transition:width 0.5s;'></div>
+            </div>
+          </div>
+          <div style='width:50px; text-align:center;'>
+            <span style='font-size:0.65rem; color:{color if active else "#5a6d82"};
+                         font-family:"JetBrains Mono",monospace;'>+{weight if active else 0}</span>
+          </div>
+          <div style='width:70px; text-align:right;'>
+            <span style='font-size:0.55rem; padding:0.1rem 0.4rem;
+                         background:{color+"22" if active else "#1a2332"};
+                         color:{color if active else "#5a6d82"};
+                         border:1px solid {color+"44" if active else "#1a233200"};'>
+              {status_text}</span>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Alert Threshold Configuration ─────────────────────────────────────────
+    st.markdown("<div class='section-header'>Notification Thresholds</div>", unsafe_allow_html=True)
+    thresh_col1, thresh_col2 = st.columns(2)
+
+    with thresh_col1:
+        st.markdown("""
+        <div class='metric-card' style='padding:1rem;'>
+          <h3 style='color:#00e5ff;'>Risk Score Thresholds</h3>
+        </div>""", unsafe_allow_html=True)
+        t_low = st.slider("Low Risk Ceiling", 0.0, 1.0, 0.25, 0.05, key="t_low")
+        t_mod = st.slider("Moderate Risk Ceiling", 0.0, 1.0, 0.50, 0.05, key="t_mod")
+        t_high = st.slider("High Risk Ceiling", 0.0, 1.0, 0.75, 0.05, key="t_high")
+
+    with thresh_col2:
+        st.markdown("""
+        <div class='metric-card' style='padding:1rem;'>
+          <h3 style='color:#ffb020;'>Alert Dispatch Rules</h3>
+        </div>""", unsafe_allow_html=True)
+        dispatch_rules = {
+            "🟢 Low (< {:.0%})".format(t_low): "Log only — no notification",
+            "🟡 Moderate ({:.0%} – {:.0%})".format(t_low, t_mod): "Dashboard warning + daily digest",
+            "🟠 High ({:.0%} – {:.0%})".format(t_mod, t_high): "Push notification to patrol teams",
+            "🔴 Critical (> {:.0%})".format(t_high): "Immediate SMS + siren activation at crossing",
+        }
+        for rule, action in dispatch_rules.items():
+            st.markdown(f"**{rule}:** {action}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Simulated Alert Feed ──────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Recent Alert Feed (Simulated)</div>", unsafe_allow_html=True)
+
+    # Generate alerts from high-risk records in training data
+    high_risk_df = df[df["risk_score"] > 0.65].sample(min(8, len(df[df["risk_score"]>0.65])), random_state=42)
+    for idx, row in high_risk_df.iterrows():
+        risk_val = row["risk_score"]
+        if risk_val > 0.80:
+            a_level, a_color, a_icon = "CRITICAL", "#ff3d5a", "🔴"
+        elif risk_val > 0.65:
+            a_level, a_color, a_icon = "HIGH", "#ff7043", "🟠"
+        else:
+            a_level, a_color, a_icon = "ELEVATED", "#ffb020", "🟡"
+
+        species_str = row["species"].capitalize() if "species" in row.index else "Unknown"
+        road_str = row["road_type"].replace("_"," ").title() if "road_type" in row.index else "Road"
+        hour_str = f"{int(row['hour']):02d}:00" if "hour" in row.index else "--:--"
+
+        st.markdown(f"""
+        <div style='display:flex; align-items:center; padding:0.5rem 0.8rem; margin:0.3rem 0;
+                    background:#0d132066; border-left:3px solid {a_color};'>
+          <div style='margin-right:0.8rem; font-size:1.2rem;'>{a_icon}</div>
+          <div style='flex:1;'>
+            <div style='font-size:0.75rem; color:#e8f0fa;'>
+              <span style='color:{a_color}; font-weight:600;'>{a_level}</span> —
+              {species_str} crossing detected on {road_str}
+            </div>
+            <div style='font-size:0.6rem; color:#5a6d82; margin-top:0.15rem;'>
+              Risk: {risk_val:.3f} · {row.get("season","—").replace("_"," ").title()} ·
+              {hour_str} · NDVI: {row.get("ndvi",0):.3f}
+            </div>
+          </div>
+          <div style='text-align:right;'>
+            <span style='font-family:"JetBrains Mono",monospace; font-size:0.9rem;
+                         color:{a_color}; font-weight:700;'>{risk_val:.2f}</span>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Hourly Risk Heatmap for Alerts ────────────────────────────────────────
+    st.markdown("<div class='section-header'>24-Hour Alert Pattern Analysis</div>", unsafe_allow_html=True)
+    hourly_stats = df.groupby("hour").agg(
+        accident_rate=("accident","mean"),
+        avg_risk=("risk_score","mean"),
+        total_accidents=("accident","sum"),
+    ).reset_index()
+
+    fig_alert_heatmap = go.Figure()
+    fig_alert_heatmap.add_trace(go.Bar(
+        x=hourly_stats["hour"], y=hourly_stats["total_accidents"],
+        marker_color=[
+            "#ff3d5a" if (h < 6 or h >= 20) else "#ffb020" if (5<=h<=7 or 17<=h<=19)
+            else "#00e676" for h in hourly_stats["hour"]
+        ],
+        text=hourly_stats["total_accidents"], textposition="outside",
+        name="Accidents",
+    ))
+    fig_alert_heatmap.add_trace(go.Scatter(
+        x=hourly_stats["hour"], y=hourly_stats["avg_risk"]*hourly_stats["total_accidents"].max(),
+        mode="lines", line=dict(color="#00e5ff", width=2, dash="dot"),
+        name="Risk Trend (scaled)", yaxis="y2",
+    ))
+    fig_alert_heatmap.update_layout(
+        paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+        font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+        title="Accidents by Hour — Night/Dawn-Dusk Highlighting",
+        xaxis=dict(title="Hour of Day", gridcolor="#1a2332", zerolinecolor="#1a2332",
+                   dtick=1, range=[-0.5, 23.5]),
+        yaxis=dict(title="Total Accidents", gridcolor="#1a2332", zerolinecolor="#1a2332"),
+        yaxis2=dict(overlaying="y", side="right", showticklabels=False),
+        height=380, margin=dict(l=40,r=20,t=40,b=30), showlegend=True,
+        legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"),
+    )
+    # Night window shading
+    fig_alert_heatmap.add_vrect(x0=-0.5, x1=5.5, fillcolor="#ff3d5a08", line_width=0,
+                                 annotation_text="Night", annotation_position="top left",
+                                 annotation=dict(font=dict(size=9, color="#ff3d5a66")))
+    fig_alert_heatmap.add_vrect(x0=19.5, x1=23.5, fillcolor="#ff3d5a08", line_width=0)
+    fig_alert_heatmap.add_vrect(x0=4.5, x1=7.5, fillcolor="#ffb02008", line_width=0,
+                                 annotation_text="Dawn", annotation_position="top left",
+                                 annotation=dict(font=dict(size=9, color="#ffb02066")))
+    fig_alert_heatmap.add_vrect(x0=16.5, x1=19.5, fillcolor="#ffb02008", line_width=0,
+                                 annotation_text="Dusk", annotation_position="top left",
+                                 annotation=dict(font=dict(size=9, color="#ffb02066")))
+    st.plotly_chart(fig_alert_heatmap, use_container_width=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE 9 — SDG GOALS
+# ═══════════════════════════════════════════════════════════════════════════════
+elif page == "🌍 SDG Goals":
+    from utils.helpers import PALETTE
+
+    st.markdown("""
+    <h1 style='font-family:"Space Mono",monospace; font-size:1.8rem; margin:0 0 0.3rem 0;'>
+      🌍 UN Sustainable Development <span style='color:#00e5ff;'>Goals Alignment</span>
+    </h1>
+    <p style='color:#8B949E; font-size:0.82rem; margin:0 0 1.5rem 0;'>
+      Mapping WildGuard AI's impact to the United Nations 2030 Agenda for Sustainable Development
+    </p>
+    """, unsafe_allow_html=True)
+
+    # SDG Goals relevant to this project
+    sdg_goals = [
+        {
+            "number": 15, "title": "Life on Land",
+            "color": "#56C02B", "icon": "🌳",
+            "description": "Protect, restore and promote sustainable use of terrestrial ecosystems, "
+                          "sustainably manage forests, combat desertification, halt and reverse land degradation "
+                          "and halt biodiversity loss.",
+            "alignment": "DIRECT",
+            "targets": [
+                {"id": "15.1", "text": "Conservation of terrestrial and freshwater ecosystems",
+                 "contribution": "NDVI monitoring tracks vegetation health near wildlife corridors; real-time alerts prevent habitat fragmentation from road mortality."},
+                {"id": "15.5", "text": "Reduce degradation of natural habitats and halt biodiversity loss",
+                 "contribution": "Species risk scoring identifies the most threatened animals (tiger=0.9, elephant=0.95) and prioritizes corridors for protection."},
+                {"id": "15.7", "text": "End poaching and trafficking of protected species",
+                 "contribution": "Monitoring animal movement patterns across 21 protected areas helps detect unusual activity that could indicate poaching."},
+                {"id": "15.9", "text": "Integrate ecosystem values into planning",
+                 "contribution": "Risk prediction models provide data-driven evidence for road planning and wildlife crossing infrastructure investment."},
+            ],
+            "metrics": {
+                "Protected Areas Monitored": "21 (14 South India + 7 Central India)",
+                "Wildlife Corridors Tracked": "11 active corridors",
+                "Species Covered": "8 (tiger, elephant, leopard, deer, boar, wolf, nilgai, sambar)",
+                "NDVI Coverage": f"Mean vegetation index: {df['ndvi'].mean():.3f}",
+            },
+        },
+        {
+            "number": 11, "title": "Sustainable Cities and Communities",
+            "color": "#FD9D24", "icon": "🏙️",
+            "description": "Make cities and human settlements inclusive, safe, resilient and sustainable.",
+            "alignment": "DIRECT",
+            "targets": [
+                {"id": "11.2", "text": "Sustainable transport systems for all",
+                 "contribution": "Risk maps guide road authorities to install wildlife crossings, speed limits, and warning systems on high-risk highway segments."},
+                {"id": "11.6", "text": "Reduce environmental impact of cities",
+                 "contribution": "Night light index and urbanization tracking help quantify human encroachment into wildlife habitats along transportation corridors."},
+                {"id": "11.b", "text": "Implement integrated policies for resource efficiency and disaster risk reduction",
+                 "contribution": "Alert system enables proactive risk management rather than reactive incident response, reducing both animal deaths and human injuries."},
+            ],
+            "metrics": {
+                "Road Types Analyzed": "National highway, state highway, district road, forest road, rural",
+                "Accident Prevention Model": f"AUC = {xgb_metrics.get('roc_auc',0):.4f} (XGBoost)",
+                "High-Risk Zones Identified": f"{(df['risk_score'] > 0.65).sum():,} locations",
+            },
+        },
+        {
+            "number": 9, "title": "Industry, Innovation and Infrastructure",
+            "color": "#FD6925", "icon": "🏗️",
+            "description": "Build resilient infrastructure, promote inclusive and sustainable industrialization "
+                          "and foster innovation.",
+            "alignment": "SUPPORTING",
+            "targets": [
+                {"id": "9.1", "text": "Develop quality, reliable, sustainable and resilient infrastructure",
+                 "contribution": "Data-driven recommendations for wildlife crossing structures, underpasses, and overpasses based on predictive modeling of collision hotspots."},
+                {"id": "9.5", "text": "Enhance scientific research and upgrade technological capabilities",
+                 "contribution": "Dual-model ensemble (XGBoost + Random Forest) with SHAP explainability represents cutting-edge application of ML to conservation."},
+            ],
+            "metrics": {
+                "ML Models Deployed": "2 (XGBoost + Random Forest ensemble)",
+                "Features Engineered": "30+ from 7 real-time data sources",
+                "Explainability": "SHAP values for every prediction",
+            },
+        },
+        {
+            "number": 3, "title": "Good Health and Well-being",
+            "color": "#4C9F38", "icon": "💚",
+            "description": "Ensure healthy lives and promote well-being for all at all ages.",
+            "alignment": "SUPPORTING",
+            "targets": [
+                {"id": "3.6", "text": "Halve global deaths and injuries from road traffic accidents",
+                 "contribution": "Wildlife-vehicle collisions cause human fatalities and injuries. Early warning systems and speed reduction in high-risk zones protect both human and animal lives."},
+            ],
+            "metrics": {
+                "Night Risk Reduction": f"Night accident rate: {df[df['night_flag']==1]['accident'].mean():.1%}",
+                "Speed Factor": "Speed ratio analysis identifies dangerous driving conditions",
+            },
+        },
+        {
+            "number": 13, "title": "Climate Action",
+            "color": "#3F7E44", "icon": "🌡️",
+            "description": "Take urgent action to combat climate change and its impacts.",
+            "alignment": "SUPPORTING",
+            "targets": [
+                {"id": "13.1", "text": "Strengthen resilience and adaptive capacity to climate-related hazards",
+                 "contribution": "Seasonal prediction models account for monsoon, drought, and climate-driven changes in animal movement patterns and vegetation (NDVI)."},
+                {"id": "13.3", "text": "Improve education and awareness on climate change mitigation",
+                 "contribution": "Dashboard visualizations communicate how climate variables (rainfall, temperature, humidity) affect wildlife-road interactions."},
+            ],
+            "metrics": {
+                "Climate Variables Tracked": "Temperature, rainfall, humidity, visibility",
+                "Seasonal Coverage": "Summer, monsoon, post-monsoon, winter cycles",
+            },
+        },
+        {
+            "number": 17, "title": "Partnerships for the Goals",
+            "color": "#19486A", "icon": "🤝",
+            "description": "Strengthen the means of implementation and revitalize the Global Partnership "
+                          "for Sustainable Development.",
+            "alignment": "ENABLING",
+            "targets": [
+                {"id": "17.6", "text": "Knowledge sharing and cooperation for access to science, technology and innovation",
+                 "contribution": "Open data integration from GBIF, OpenStreetMap, Open-Meteo, and government portals demonstrates collaborative approach to conservation technology."},
+                {"id": "17.18", "text": "Enhance availability of reliable data",
+                 "contribution": "7-source real-time data pipeline provides comprehensive and timely data for evidence-based wildlife management."},
+            ],
+            "metrics": {
+                "Data Sources Integrated": "7 (APIs, RSS, Government portals, GIS computation)",
+                "Open Data Partners": "GBIF, OpenStreetMap, Open-Meteo, India Biodiversity Portal",
+            },
+        },
+    ]
+
+    # ── Overall SDG Impact Summary ────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Impact Summary</div>", unsafe_allow_html=True)
+    impact_cols = st.columns(4)
+    with impact_cols[0]:
+        st.markdown("""<div class='metric-card'>
+          <h3>SDGs Addressed</h3>
+          <div class='value' style='font-size:2rem; color:#00e5ff;'>6</div>
+          <div class='sub'>of 17 UN Goals</div>
+        </div>""", unsafe_allow_html=True)
+    with impact_cols[1]:
+        st.markdown("""<div class='metric-card'>
+          <h3>Direct Alignment</h3>
+          <div class='value' style='font-size:2rem; color:#00e676;'>2</div>
+          <div class='sub'>SDG 15 + SDG 11</div>
+        </div>""", unsafe_allow_html=True)
+    with impact_cols[2]:
+        st.markdown("""<div class='metric-card'>
+          <h3>Targets Covered</h3>
+          <div class='value' style='font-size:2rem; color:#ffb020;'>14</div>
+          <div class='sub'>specific UN targets</div>
+        </div>""", unsafe_allow_html=True)
+    with impact_cols[3]:
+        st.markdown(f"""<div class='metric-card'>
+          <h3>Data Points</h3>
+          <div class='value' style='font-size:2rem; color:#d500f9;'>{len(df):,}</div>
+          <div class='sub'>training records</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── SDG Goal Cards ────────────────────────────────────────────────────────
+    for goal in sdg_goals:
+        alignment_badge_color = {"DIRECT":"#00e676","SUPPORTING":"#ffb020","ENABLING":"#4da6ff"}[goal["alignment"]]
+
+        st.markdown(f"""
+        <div style='background:#0d1320; border:1px solid {goal["color"]}44; padding:1.2rem;
+                    margin-bottom:0.8rem; border-left:4px solid {goal["color"]};'>
+          <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;'>
+            <div style='display:flex; align-items:center; gap:0.8rem;'>
+              <div style='font-size:2rem;'>{goal["icon"]}</div>
+              <div>
+                <div style='font-family:"IBM Plex Mono",monospace; font-size:0.5rem; color:#5a6d82;
+                            letter-spacing:0.15em;'>SDG {goal["number"]}</div>
+                <div style='font-size:1.1rem; font-weight:600; color:{goal["color"]};'>{goal["title"]}</div>
+              </div>
+            </div>
+            <span style='font-size:0.55rem; padding:0.15rem 0.6rem; color:{alignment_badge_color};
+                         background:{alignment_badge_color}15; border:1px solid {alignment_badge_color}33;
+                         font-family:"IBM Plex Mono",monospace; letter-spacing:0.1em;'>
+              {goal["alignment"]}
+            </span>
+          </div>
+          <p style='font-size:0.75rem; color:#8B949E; margin:0 0 0.6rem 0; line-height:1.4;'>
+            {goal["description"]}
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Targets and metrics in two columns
+        target_col, metric_col = st.columns([1.5, 1])
+        with target_col:
+            for target in goal["targets"]:
+                st.markdown(f"""
+                <div style='padding:0.4rem 0.6rem; margin:0.2rem 0; background:#060a10;
+                            border-left:2px solid {goal["color"]}66;'>
+                  <div style='font-size:0.7rem; color:{goal["color"]}; font-family:"JetBrains Mono",monospace;'>
+                    Target {target["id"]}: {target["text"]}
+                  </div>
+                  <div style='font-size:0.68rem; color:#8B949E; margin-top:0.2rem; line-height:1.3;'>
+                    {target["contribution"]}
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with metric_col:
+            st.markdown(f"""
+            <div class='metric-card' style='border-top:2px solid {goal["color"]};'>
+              <h3 style='color:{goal["color"]}; font-size:0.75rem;'>Project Metrics</h3>
+            </div>""", unsafe_allow_html=True)
+            for metric_name, metric_val in goal["metrics"].items():
+                st.markdown(f"""
+                <div style='display:flex; justify-content:space-between; padding:0.25rem 0.4rem;
+                            border-bottom:1px solid #1a2332; font-size:0.68rem;'>
+                  <span style='color:#5a6d82;'>{metric_name}</span>
+                  <span style='color:#c8d6e5; font-family:"JetBrains Mono",monospace;'>{metric_val}</span>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── SDG Contribution Radar ────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>SDG Contribution Radar</div>", unsafe_allow_html=True)
+    sdg_labels = [f"SDG {g['number']}" for g in sdg_goals]
+    sdg_scores = [0.95, 0.80, 0.65, 0.55, 0.60, 0.70]  # alignment scores
+    fig_radar = go.Figure()
+    fig_radar.add_trace(go.Scatterpolar(
+        r=sdg_scores + [sdg_scores[0]], theta=sdg_labels + [sdg_labels[0]],
+        fill="toself", fillcolor="rgba(0,229,255,0.12)",
+        line=dict(color="#00e5ff", width=2),
+        marker=dict(size=8, color="#00e5ff"),
+        name="WildGuard AI Impact",
+    ))
+    fig_radar.update_layout(
+        paper_bgcolor="#060a10", font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+        polar=dict(
+            bgcolor="#0d1320",
+            radialaxis=dict(visible=True, range=[0,1], gridcolor="#1a2332",
+                           tickfont=dict(size=8, color="#5a6d82")),
+            angularaxis=dict(gridcolor="#1a2332", tickfont=dict(size=10, color="#c8d6e5")),
+        ),
+        height=420, margin=dict(l=60,r=60,t=30,b=30), showlegend=False,
+    )
+    st.plotly_chart(fig_radar, use_container_width=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE 10 — SEASON-WISE PREDICTION
+# ═══════════════════════════════════════════════════════════════════════════════
+elif page == "📅 Season Prediction":
+    from utils.helpers import PALETTE, PLOTLY_LAYOUT
+
+    st.markdown("""
+    <h1 style='font-family:"Space Mono",monospace; font-size:1.8rem; margin:0 0 0.3rem 0;'>
+      📅 Season-Wise <span style='color:#ffb020;'>Risk Prediction</span>
+    </h1>
+    <p style='color:#8B949E; font-size:0.82rem; margin:0 0 1.5rem 0;'>
+      Comprehensive seasonal analysis with predictive modeling for each Indian season cycle
+    </p>
+    """, unsafe_allow_html=True)
+
+    seasons_list = ["summer", "monsoon", "post_monsoon", "winter"]
+    season_display = {"summer":"Summer (Mar-May)", "monsoon":"Monsoon (Jun-Sep)",
+                      "post_monsoon":"Post-Monsoon (Oct-Nov)", "winter":"Winter (Dec-Feb)"}
+    season_icons_map = {"summer":"☀️", "monsoon":"🌧️", "post_monsoon":"🍂", "winter":"❄️"}
+    season_color_map = {"summer":"#ffb020", "monsoon":"#00e676", "post_monsoon":"#ff7043", "winter":"#4da6ff"}
+
+    # ── Season Overview Cards ─────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Seasonal Risk Overview</div>", unsafe_allow_html=True)
+    season_stats = df.groupby("season").agg(
+        count=("accident","count"), accidents=("accident","sum"),
+        acc_rate=("accident","mean"), avg_risk=("risk_score","mean"),
+        avg_ndvi=("ndvi","mean"), avg_movement=("movement_score","mean"),
+        avg_speed_ratio=("speed_ratio","mean"), avg_visibility=("visibility_m","mean"),
+        avg_rainfall=("rainfall_mm","mean"),
+    )
+
+    scols = st.columns(4)
+    for i, s in enumerate(seasons_list):
+        with scols[i]:
+            if s in season_stats.index:
+                row = season_stats.loc[s]
+                risk_badge = "🔴 HIGH" if row["acc_rate"] > 0.45 else "🟡 MODERATE" if row["acc_rate"] > 0.35 else "🟢 LOW"
+                st.markdown(f"""
+                <div class='metric-card' style='border-top:4px solid {season_color_map[s]}; padding:1rem;'>
+                  <div style='text-align:center; font-size:2rem;'>{season_icons_map[s]}</div>
+                  <h3 style='text-align:center; color:{season_color_map[s]}; font-size:0.9rem;'>{season_display[s]}</h3>
+                  <div style='text-align:center; margin:0.4rem 0;'>
+                    <span style='font-size:0.6rem; padding:0.1rem 0.5rem;
+                                background:{season_color_map[s]}15; color:{season_color_map[s]};
+                                border:1px solid {season_color_map[s]}33;'>{risk_badge}</span>
+                  </div>
+                  <div style='margin-top:0.5rem; font-size:0.65rem; color:#5a6d82; line-height:1.6;'>
+                    <div style='display:flex; justify-content:space-between;'>
+                      <span>Records</span><span style='color:#e8f0fa;'>{row["count"]:,.0f}</span></div>
+                    <div style='display:flex; justify-content:space-between;'>
+                      <span>Accidents</span><span style='color:#ff3d5a;'>{row["accidents"]:,.0f}</span></div>
+                    <div style='display:flex; justify-content:space-between;'>
+                      <span>Accident Rate</span><span style='color:#ff3d5a;'>{row["acc_rate"]:.1%}</span></div>
+                    <div style='display:flex; justify-content:space-between;'>
+                      <span>Avg Risk</span><span style='color:#ffb020;'>{row["avg_risk"]:.3f}</span></div>
+                    <div style='display:flex; justify-content:space-between;'>
+                      <span>NDVI</span><span style='color:#00e676;'>{row["avg_ndvi"]:.3f}</span></div>
+                    <div style='display:flex; justify-content:space-between;'>
+                      <span>Movement</span><span style='color:#00e5ff;'>{row["avg_movement"]:.3f}</span></div>
+                  </div>
+                </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Seasonal Comparison Charts ────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Seasonal Risk Comparison</div>", unsafe_allow_html=True)
+
+    comp_cols = st.columns(2)
+    with comp_cols[0]:
+        # Accident rate by season bar chart
+        fig_season_acc = go.Figure(go.Bar(
+            x=[season_display[s] for s in seasons_list],
+            y=[season_stats.loc[s,"acc_rate"] if s in season_stats.index else 0 for s in seasons_list],
+            marker_color=[season_color_map[s] for s in seasons_list],
+            text=[f"{season_stats.loc[s,'acc_rate']:.1%}" if s in season_stats.index else "0%" for s in seasons_list],
+            textposition="outside",
+        ))
+        fig_season_acc.update_layout(
+            paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+            font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+            title="Accident Rate by Season", height=380,
+            xaxis=dict(gridcolor="#1a2332", zerolinecolor="#1a2332"),
+            yaxis=dict(title="Accident Rate", gridcolor="#1a2332", zerolinecolor="#1a2332",
+                       tickformat=".0%"),
+            margin=dict(l=40,r=20,t=40,b=30),
+        )
+        st.plotly_chart(fig_season_acc, use_container_width=True)
+
+    with comp_cols[1]:
+        # Multi-variable radar per season
+        fig_season_radar = go.Figure()
+        radar_vars = ["Accident Rate", "Avg Risk", "NDVI", "Movement", "Rainfall", "Visibility"]
+        for s in seasons_list:
+            if s in season_stats.index:
+                row = season_stats.loc[s]
+                vals = [row["acc_rate"], row["avg_risk"],
+                        row["avg_ndvi"], row["avg_movement"],
+                        min(1, row["avg_rainfall"]/100), min(1, row["avg_visibility"]/1000)]
+                fig_season_radar.add_trace(go.Scatterpolar(
+                    r=vals + [vals[0]], theta=radar_vars + [radar_vars[0]],
+                    fill="toself", fillcolor=season_color_map[s]+"18",
+                    line=dict(color=season_color_map[s], width=2),
+                    name=season_display[s],
+                ))
+        fig_season_radar.update_layout(
+            paper_bgcolor="#060a10",
+            font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+            polar=dict(bgcolor="#0d1320",
+                       radialaxis=dict(visible=True, range=[0,1], gridcolor="#1a2332",
+                                       tickfont=dict(size=8, color="#5a6d82")),
+                       angularaxis=dict(gridcolor="#1a2332")),
+            title="Multi-Variable Season Comparison", height=380,
+            margin=dict(l=60,r=60,t=40,b=30),
+            legend=dict(font=dict(size=9), orientation="h", y=-0.15, x=0.5, xanchor="center"),
+        )
+        st.plotly_chart(fig_season_radar, use_container_width=True)
+
+    # ── Species Risk by Season ────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Species Risk Heatmap by Season</div>", unsafe_allow_html=True)
+
+    sp_season = df.groupby(["species","season"])["accident"].mean().unstack(fill_value=0)
+    sp_season = sp_season.reindex(columns=seasons_list)
+    fig_sp_heat = go.Figure(go.Heatmap(
+        z=sp_season.values, x=[season_display[s] for s in seasons_list],
+        y=[s.capitalize() for s in sp_season.index],
+        colorscale=[[0,"#060a10"],[0.3,"#0d4f3c"],[0.5,"#ffb020"],[0.7,"#ff7043"],[1,"#ff3d5a"]],
+        text=[[f"{v:.1%}" for v in row] for row in sp_season.values],
+        texttemplate="%{text}", showscale=True,
+        colorbar=dict(title="Accident Rate", tickfont=dict(color="#5a6d82"),
+                      titlefont=dict(color="#5a6d82")),
+    ))
+    fig_sp_heat.update_layout(
+        paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+        font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+        title="Species × Season Accident Rate Matrix", height=380,
+        xaxis=dict(gridcolor="#1a2332"), yaxis=dict(gridcolor="#1a2332"),
+        margin=dict(l=80,r=20,t=40,b=30),
+    )
+    st.plotly_chart(fig_sp_heat, use_container_width=True)
+
+    # ── Season Prediction Tool ────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Season-Specific Risk Predictor</div>", unsafe_allow_html=True)
+    pred_col1, pred_col2 = st.columns([1, 2])
+
+    with pred_col1:
+        pred_season = st.selectbox("Select Season", seasons_list,
+                                    format_func=lambda x: f"{season_icons_map[x]} {season_display[x]}",
+                                    key="season_pred_select")
+        pred_species = st.selectbox("Select Species",
+                                     sorted(df["species"].unique()),
+                                     format_func=lambda x: x.capitalize(),
+                                     key="season_pred_species")
+        pred_road = st.selectbox("Road Type",
+                                  sorted(df["road_type"].unique()),
+                                  format_func=lambda x: x.replace("_"," ").title(),
+                                  key="season_pred_road")
+        pred_hour = st.slider("Hour of Day", 0, 23, 18, key="season_pred_hour")
+
+    with pred_col2:
+        # Filter data for prediction context
+        mask = (df["season"] == pred_season)
+        if pred_species in df["species"].values:
+            mask_sp = mask & (df["species"] == pred_species)
+            if mask_sp.sum() > 10:
+                mask = mask_sp
+        if pred_road in df["road_type"].values:
+            mask_rd = mask & (df["road_type"] == pred_road)
+            if mask_rd.sum() > 10:
+                mask = mask_rd
+
+        filtered = df[mask]
+        if len(filtered) > 0:
+            pred_risk = filtered["risk_score"].mean()
+            pred_acc_rate = filtered["accident"].mean()
+            pred_ndvi = filtered["ndvi"].mean()
+            pred_movement = filtered["movement_score"].mean()
+
+            risk_color = "#ff3d5a" if pred_risk > 0.6 else "#ffb020" if pred_risk > 0.4 else "#00e676"
+
+            st.markdown(f"""
+            <div style='background:#0d1320; border:1px solid {risk_color}44; padding:1.2rem;'>
+              <div style='font-family:"IBM Plex Mono",monospace; font-size:0.48rem; color:#5a6d82;
+                          letter-spacing:0.2em;'>SEASONAL PREDICTION RESULT</div>
+              <div style='display:flex; gap:1.5rem; margin-top:0.6rem;'>
+                <div style='flex:1; text-align:center;'>
+                  <div style='font-size:2rem;'>{season_icons_map[pred_season]}</div>
+                  <div style='font-family:"JetBrains Mono",monospace; font-size:1.8rem; font-weight:700;
+                              color:{risk_color};'>{pred_risk:.3f}</div>
+                  <div style='font-size:0.6rem; color:#5a6d82;'>Predicted Risk Score</div>
+                </div>
+                <div style='flex:2;'>
+                  <div style='font-size:0.7rem; color:#5a6d82; line-height:1.8;'>
+                    <div style='display:flex; justify-content:space-between; border-bottom:1px solid #1a2332; padding:0.2rem 0;'>
+                      <span>Accident Probability</span>
+                      <span style='color:#ff3d5a; font-family:"JetBrains Mono",monospace;'>{pred_acc_rate:.1%}</span>
+                    </div>
+                    <div style='display:flex; justify-content:space-between; border-bottom:1px solid #1a2332; padding:0.2rem 0;'>
+                      <span>Expected NDVI</span>
+                      <span style='color:#00e676; font-family:"JetBrains Mono",monospace;'>{pred_ndvi:.4f}</span>
+                    </div>
+                    <div style='display:flex; justify-content:space-between; border-bottom:1px solid #1a2332; padding:0.2rem 0;'>
+                      <span>Movement Score</span>
+                      <span style='color:#00e5ff; font-family:"JetBrains Mono",monospace;'>{pred_movement:.4f}</span>
+                    </div>
+                    <div style='display:flex; justify-content:space-between; border-bottom:1px solid #1a2332; padding:0.2rem 0;'>
+                      <span>Sample Size</span>
+                      <span style='color:#c8d6e5; font-family:"JetBrains Mono",monospace;'>{len(filtered):,} records</span>
+                    </div>
+                    <div style='display:flex; justify-content:space-between; padding:0.2rem 0;'>
+                      <span>Conditions</span>
+                      <span style='color:#c8d6e5; font-size:0.65rem;'>
+                        {pred_species.capitalize()} · {pred_road.replace('_',' ').title()} · {pred_hour}:00
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Hour × Season Heatmap ─────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Hour × Season Risk Heatmap</div>", unsafe_allow_html=True)
+    hour_season = df.groupby(["hour","season"])["accident"].mean().unstack(fill_value=0)
+    hour_season = hour_season.reindex(columns=seasons_list)
+    fig_hs = go.Figure(go.Heatmap(
+        z=hour_season.values.T, x=list(range(24)),
+        y=[season_display[s] for s in seasons_list],
+        colorscale=[[0,"#060a10"],[0.3,"#0d4f3c"],[0.5,"#ffb020"],[0.7,"#ff7043"],[1,"#ff3d5a"]],
+        showscale=True,
+        colorbar=dict(title="Accident Rate", tickfont=dict(color="#5a6d82"),
+                      titlefont=dict(color="#5a6d82")),
+    ))
+    fig_hs.update_layout(
+        paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
+        font=dict(color="#c8d6e5", family="'JetBrains Mono', monospace"),
+        title="Hour of Day × Season — Accident Rate", height=320,
+        xaxis=dict(title="Hour of Day", dtick=1, gridcolor="#1a2332", zerolinecolor="#1a2332"),
+        yaxis=dict(gridcolor="#1a2332"),
+        margin=dict(l=120,r=20,t=40,b=30),
+    )
+    st.plotly_chart(fig_hs, use_container_width=True)
+
+    # ── Seasonal Recommendations ──────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Seasonal Safety Recommendations</div>", unsafe_allow_html=True)
+
+    recommendations = {
+        "summer": [
+            "Increased animal movement toward water sources — monitor water crossings closely",
+            "Higher speeds due to clear visibility — enforce speed limits near corridors",
+            "Reduced vegetation cover exposes animals during road crossing",
+            "Deploy additional warning signage near known watering holes",
+        ],
+        "monsoon": [
+            "Peak breeding season drives unusual animal movement patterns",
+            "Reduced visibility from rain — activate electronic warning boards",
+            "Flooded underpasses force animals to cross roads at surface level",
+            "Monitor swollen river crossings — animals may be displaced from usual paths",
+            "Deploy patrol teams during dawn/dusk periods when risk is highest",
+        ],
+        "post_monsoon": [
+            "Breeding activity continues — maintain heightened surveillance",
+            "Lush vegetation provides cover near roads — animals may appear suddenly",
+            "Migratory species begin seasonal movements through corridors",
+            "High NDVI may give false sense of security — maintain alert level",
+        ],
+        "winter": [
+            "Cooler temperatures increase daytime animal activity",
+            "Fog and poor visibility in early morning — highest single-hour risk",
+            "Holiday traffic increases vehicle volume on highways",
+            "Shorter days expand the effective night-risk window",
+        ],
+    }
+
+    for s in seasons_list:
+        color = season_color_map[s]
+        icon = season_icons_map[s]
+        st.markdown(f"""
+        <div style='margin-bottom:0.8rem;'>
+          <div style='font-size:0.85rem; color:{color}; font-weight:600; margin-bottom:0.3rem;'>
+            {icon} {season_display[s]}
+          </div>
+        </div>""", unsafe_allow_html=True)
+        for rec in recommendations[s]:
+            st.markdown(f"- {rec}")
+        st.markdown("")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE 11 — DATA SOURCES
 # ═══════════════════════════════════════════════════════════════════════════════
 elif page == "📡 Data Sources":
     from utils.helpers import PALETTE
