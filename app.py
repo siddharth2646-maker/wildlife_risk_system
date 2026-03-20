@@ -2620,7 +2620,7 @@ elif page == "🌿 NDVI Prediction":
         yaxis=dict(title="NDVI Index", gridcolor="#1a2332", zerolinecolor="#1a2332",
                    range=[0, 1]),
         yaxis2=dict(title="Accident Rate", overlaying="y", side="right",
-                    gridcolor="#1a233200", range=[0, 1],
+                    gridcolor="rgba(26,35,50,0)", range=[0, 1],
                     tickfont=dict(color="#ff3d5a"), title_font=dict(color="#ff3d5a")),
         height=420, margin=dict(l=40,r=50,t=40,b=30),
         legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center",
@@ -2735,9 +2735,9 @@ elif page == "🌿 NDVI Prediction":
                     bgcolor="#0d1320",
                     borderwidth=0,
                     steps=[
-                        dict(range=[0, 0.3], color="#ff3d5a22"),
-                        dict(range=[0.3, 0.5], color="#ffb02022"),
-                        dict(range=[0.5, 1], color="#00e67622"),
+                        dict(range=[0, 0.3], color="rgba(255,61,90,0.13)"),
+                        dict(range=[0.3, 0.5], color="rgba(255,176,32,0.13)"),
+                        dict(range=[0.5, 1], color="rgba(0,230,118,0.13)"),
                     ],
                 ),
                 title=dict(text="Predicted NDVI", font=dict(size=14, color="#c8d6e5")),
@@ -2881,7 +2881,7 @@ elif page == "🚨 Alert System":
             <span style='font-size:0.55rem; padding:0.1rem 0.4rem;
                          background:{color+"22" if active else "#1a2332"};
                          color:{color if active else "#5a6d82"};
-                         border:1px solid {color+"44" if active else "#1a233200"};'>
+                         border:1px solid {color+"44" if active else "transparent"};'>
               {status_text}</span>
           </div>
         </div>""", unsafe_allow_html=True)
@@ -2992,16 +2992,16 @@ elif page == "🚨 Alert System":
         legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"),
     )
     # Night window shading
-    fig_alert_heatmap.add_vrect(x0=-0.5, x1=5.5, fillcolor="#ff3d5a08", line_width=0,
+    fig_alert_heatmap.add_vrect(x0=-0.5, x1=5.5, fillcolor="rgba(255,61,90,0.03)", line_width=0,
                                  annotation_text="Night", annotation_position="top left",
-                                 annotation=dict(font=dict(size=9, color="#ff3d5a66")))
-    fig_alert_heatmap.add_vrect(x0=19.5, x1=23.5, fillcolor="#ff3d5a08", line_width=0)
-    fig_alert_heatmap.add_vrect(x0=4.5, x1=7.5, fillcolor="#ffb02008", line_width=0,
+                                 annotation=dict(font=dict(size=9, color="rgba(255,61,90,0.4)")))
+    fig_alert_heatmap.add_vrect(x0=19.5, x1=23.5, fillcolor="rgba(255,61,90,0.03)", line_width=0)
+    fig_alert_heatmap.add_vrect(x0=4.5, x1=7.5, fillcolor="rgba(255,176,32,0.03)", line_width=0,
                                  annotation_text="Dawn", annotation_position="top left",
-                                 annotation=dict(font=dict(size=9, color="#ffb02066")))
-    fig_alert_heatmap.add_vrect(x0=16.5, x1=19.5, fillcolor="#ffb02008", line_width=0,
+                                 annotation=dict(font=dict(size=9, color="rgba(255,176,32,0.4)")))
+    fig_alert_heatmap.add_vrect(x0=16.5, x1=19.5, fillcolor="rgba(255,176,32,0.03)", line_width=0,
                                  annotation_text="Dusk", annotation_position="top left",
-                                 annotation=dict(font=dict(size=9, color="#ffb02066")))
+                                 annotation=dict(font=dict(size=9, color="rgba(255,176,32,0.4)")))
     st.plotly_chart(fig_alert_heatmap, use_container_width=True)
 
 
