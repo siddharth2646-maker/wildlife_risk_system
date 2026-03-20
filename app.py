@@ -2579,7 +2579,8 @@ elif page == "🌿 NDVI Prediction":
         s = month_to_season[m]
         mod = season_modifiers[s]
         mean_val = base_ndvi + mod
-        std_val = ndvi_by_season.loc[s, "std_ndvi"] if s in ndvi_by_season.index else 0.08
+        _s_std = ndvi_by_season.loc[s, "std_ndvi"] if s in ndvi_by_season.index else float('nan')
+        std_val = _s_std if pd.notna(_s_std) else 0.08
         forecast_ndvi.append(round(mean_val, 4))
         forecast_upper.append(round(mean_val + 1.96*std_val, 4))
         forecast_lower.append(round(mean_val - 1.96*std_val, 4))
@@ -2603,7 +2604,8 @@ elif page == "🌿 NDVI Prediction":
     risk_by_month = []
     for m in range(1,13):
         s = month_to_season[m]
-        risk_by_month.append(ndvi_by_season.loc[s,"accident_rate"] if s in ndvi_by_season.index else 0.3)
+        _s_ar = ndvi_by_season.loc[s,"accident_rate"] if s in ndvi_by_season.index else float('nan')
+        risk_by_month.append(_s_ar if pd.notna(_s_ar) else 0.3)
     fig_ndvi_forecast.add_trace(go.Scatter(
         x=x_months, y=risk_by_month, mode="lines+markers",
         line=dict(color="#ff3d5a", width=2, dash="dot"),
@@ -2797,8 +2799,8 @@ elif page == "🚨 Alert System":
     # ── Current Alert Status ──────────────────────────────────────────────────
     _now_alert = datetime.now()
     _hr = _now_alert.hour
-    _is_night = _hr < 6 or _hr >= 20
-    _is_dawn_dusk = (5 <= _hr <= 7) or (17 <= _hr <= 19)
+    _is_night = _hr < 5 or _hr >= 20
+    _is_dawn_dusk = (not _is_night) and ((5 <= _hr <= 7) or (17 <= _hr <= 19))
     _m = _now_alert.month
     _season_alert = ("summer" if _m in [3,4,5] else "monsoon" if _m in [6,7,8,9]
                      else "post_monsoon" if _m in [10,11] else "winter")
@@ -2807,10 +2809,10 @@ elif page == "🚨 Alert System":
     # Compute alert level
     _alert_score = 0
     if _is_night: _alert_score += 30
-    if _is_dawn_dusk: _alert_score += 25
+    elif _is_dawn_dusk: _alert_score += 25
     if _breeding: _alert_score += 20
     if _season_alert == "monsoon": _alert_score += 15
-    if _hr in [5,6,18,19]: _alert_score += 10
+    if (not _is_night) and _hr in [5,6,7,18,19]: _alert_score += 10
 
     if _alert_score >= 50:
         _alert_level, _alert_color, _alert_icon = "CRITICAL", "#ff3d5a", "🔴"
