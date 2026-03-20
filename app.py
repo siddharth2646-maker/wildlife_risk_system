@@ -2619,7 +2619,7 @@ elif page == "🌿 NDVI Prediction":
                    range=[0, 1]),
         yaxis2=dict(title="Accident Rate", overlaying="y", side="right",
                     gridcolor="#1a233200", range=[0, 1],
-                    tickfont=dict(color="#ff3d5a"), titlefont=dict(color="#ff3d5a")),
+                    tickfont=dict(color="#ff3d5a"), title_font=dict(color="#ff3d5a")),
         height=420, margin=dict(l=40,r=50,t=40,b=30),
         legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center",
                     font=dict(size=10)),
@@ -3373,7 +3373,7 @@ elif page == "📅 Season Prediction":
         text=[[f"{v:.1%}" for v in row] for row in sp_season.values],
         texttemplate="%{text}", showscale=True,
         colorbar=dict(title="Accident Rate", tickfont=dict(color="#5a6d82"),
-                      titlefont=dict(color="#5a6d82")),
+                      title_font=dict(color="#5a6d82")),
     ))
     fig_sp_heat.update_layout(
         paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
@@ -3475,7 +3475,7 @@ elif page == "📅 Season Prediction":
         colorscale=[[0,"#060a10"],[0.3,"#0d4f3c"],[0.5,"#ffb020"],[0.7,"#ff7043"],[1,"#ff3d5a"]],
         showscale=True,
         colorbar=dict(title="Accident Rate", tickfont=dict(color="#5a6d82"),
-                      titlefont=dict(color="#5a6d82")),
+                      title_font=dict(color="#5a6d82")),
     ))
     fig_hs.update_layout(
         paper_bgcolor="#060a10", plot_bgcolor="#0d1320",
